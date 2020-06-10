@@ -19,6 +19,6 @@ protected:
 	short _port;
 	int _queueNum;
 	int _listenfd = -1;
-}
+};
 
 #endif

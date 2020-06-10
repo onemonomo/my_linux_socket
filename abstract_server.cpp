@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/shm.h>
+#include <iostream>
 
 
 AbstractServer::AbstractServer(short port, int queue) : _port(port), _queueNum(queue) {}
