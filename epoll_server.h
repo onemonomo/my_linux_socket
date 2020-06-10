@@ -2,13 +2,15 @@
 #define _EPOLL_SERVER_
 
 #include "abstract_server.h"
+#include <sys/epoll.h>
 
 const int DFT_EPOLL_SIZE = 20;
+
 class EpollServer : public AbstractServer
 {
 public:
     EpollServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
-    ~virtual EpollServer();
+    virtual ~EpollServer();
     int Accept() override;
 private:
     void Working(int fd) override;
@@ -17,6 +19,6 @@ private:
     void HandleEpollOut(int fd);
     int _epollfd;
     epoll_event _events[DFT_EPOLL_SIZE];
-}
+};
 
 #endif
