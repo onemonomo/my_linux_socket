@@ -1,0 +1,33 @@
+@startuml
+AbsServer <|-- SingleThreadServer
+AbsServer <|-- EpollServer
+
+
+abstract class AbsServer
+{
++AbsServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
++virtual ~AbsServer();
++int Init() {实现};
++virtual void SetPort(int port) {实现};
++virtual int Accept() = 0;
+-virtual void Working(int fd) = 0;
+- short _port;
+- int _queueNum;
+- int _listenfd = -1;
+}
+
+class SingleThreadServer
+{
++SingleThreadServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
++virtual ~SingleThreadServer();
+}
+
+class EpollServer
+{
++EpollServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
++virtual ~EpollServer();
+-int _epollfd;
+-epoll_event _events[DFT_EPOLL_SIZE];
+}
+
+@enduml

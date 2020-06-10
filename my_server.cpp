@@ -9,41 +9,10 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <sys/shm.h>
-#include <thread>
-#include <iostream>
 
 
-MyServer::MyServer(short port, int queue) : _port(port), _queueNum(queue) {}
-MyServer::~MyServer()
-{
-    if (_listenfd != -1) {
-        printf("close listen fd[%u]\n", _listenfd);
-        close(_listenfd);
-    }
-}
-
-int MyServer::Init()
-{
-    printf("Start to creat socket and listen.\n");
-    _listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    printf("creaat listen fd[%u]\n", _listenfd);
-    sockaddr_in serverAddr;
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(_port);
-    serverAddr.sin_addr.s_addr = htonl(INADDR_ANY); //https://blog.csdn.net/jeffasd/article/details/51461568
-    
-    if (bind(_listenfd, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) == -1) {
-        perror("bind");
-        return -1;
-    }
-
-    if (listen(_listenfd, _queueNum) == -1) {
-        perror("listen");
-        return -1;
-    }
-
-    return 0;
-}
+MyServer::MyServer(short port, int queue) : AbstractServer(port, queue) {}
+MyServer::~MyServer() {}
 
 void MyServer::Working(int fd)
 {
