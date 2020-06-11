@@ -17,6 +17,7 @@ private:
     void HandleNewConnection(int fd);
     void HandleEpollIn(int fd);
     void HandleEpollOut(int fd);
+    void HandleEpollClosed(int fd);
     int _epollfd;
     epoll_event _events[DFT_EPOLL_SIZE];
 };

@@ -23,6 +23,7 @@ EpollServer::EpollServer(short port, int queue) : AbstractServer(port, queue)
 
 EpollServer::~EpollServer()
 {
+    printf("close epoll fd(%u)\n", _epollfd);
     if (_epollfd != -1) {
         close(_epollfd);
     }
@@ -56,8 +57,9 @@ int EpollServer::Accept()
             if (_events[i].data.fd == _listenfd) {
                 HandleNewConnection(_listenfd);
             } else {
-                if (_events[i].events & EPOLLIN) // 接收数据
-                    HandleEpollIn(_events[i].data.fd);
+                if ((_events[i].events & EPOLLHUP) || (_events[i].events & EPOLLERR) && !(_events[i].events & EPOLLIN)) // client closed
+                    HandleEpollClosed(_events[i].data.fd);
+                HandleEpollIn(_events[i].data.fd);
             }
         }
         // 怎么退出
@@ -87,7 +89,7 @@ void EpollServer::HandleEpollIn(int fd)
     char buffer[1024];
     memset(buffer, 0, sizeof(buffer));
     int len = recv(fd, buffer, sizeof(buffer), 0);
-    printf("Client[fd:%u]:%s", fd, buffer);
+    printf("Client[%u]:%s", fd, buffer);
     if (strcmp(buffer, "exit\n") == 0) {
         char end[] = "Good Bye.\n";
         send(fd, end, sizeof(end), 0);
@@ -101,8 +103,15 @@ void EpollServer::HandleEpollIn(int fd)
         return;
     }
     char ans[] = "ToDo.\n";
-    send(fd, ans, sizeof(ans), 0);
+    send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
     // 需不需要重新epoll_ctl mod?
+}
+
+void EpollServer::HandleEpollClosed(int fd)
+{
+    printf("Client[%u]:close connection.\n", fd);
+    epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, nullptr);
+    close(fd);
 }
 
 void EpollServer::Working(int fd) {}
