@@ -41,7 +41,7 @@ int EpollServer::Accept()
         perror("add listenfd to epoll.");
         return -1;
     }
-    printf("add _listenfd(%u) to epoll(%u) success.\n", _listenfd, _epollfd);
+    printf("A--add _listenfd(%u) to epoll(%u) success.\n", _listenfd, _epollfd);
     int currentEventNum = 1; // 这个参数没用？明显代码有问题，但是运行2客户端正常
     while(true) {
         int num = epoll_wait(_epollfd, _events, currentEventNum, 500); // 修改时延
@@ -69,7 +69,7 @@ int EpollServer::Accept()
 
 void EpollServer::HandleNewConnection(int fd)
 {
-    printf("get new connection.\n");
+    printf("A--get new connection.\n");
     int connfd = accept(_listenfd, nullptr, nullptr);
     if (connfd < 0) {
         perror("accept");
@@ -79,26 +79,35 @@ void EpollServer::HandleNewConnection(int fd)
     single.data.fd = connfd;
     single.events = EPOLLIN | EPOLLET;
     epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
-    printf("add new connection(%u) to epoll success.\n", connfd);
+    printf("A--add new connection(%u) to epoll success.\n", connfd);
 }
 
 void EpollServer::HandleEpollIn(int fd)
 {
     if (fd < 0) return;
-    printf("get new msg from connection(%u).\n", fd);
-    char buffer[1024];
+    printf("I--fd(%u)\n", fd);
+    char buffer[10000];
     memset(buffer, 0, sizeof(buffer));
     int len = recv(fd, buffer, sizeof(buffer), 0);
-    printf("Client[%u]:%s", fd, buffer);
+    // printf("I--Client[%u]:%s", fd, buffer);
+    /*
     if (len == 0) {
         epoll_event single;
         single.data.fd = fd;
         // single.events = EPOLLIN | EPOLLET;
         epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
+        printf("D--fd(%u)\n", fd);
         close(fd);
         return;
     }
+    */
     http.HandleRequest(fd, buffer);
+    epoll_event single;
+    single.data.fd = fd;
+    // single.events = EPOLLIN | EPOLLET;
+    epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
+    printf("D--fd(%u)\n", fd);
+    close(fd);
     //char ans[] = "ToDo.\n";
     //send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
     // 需不需要重新epoll_ctl mod?
@@ -106,7 +115,7 @@ void EpollServer::HandleEpollIn(int fd)
 
 void EpollServer::HandleEpollException(int fd)
 {
-    printf("Client[%u]:close connection.\n", fd);
+    printf("D--Client[%u]:close connection.\n", fd);
     epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, nullptr);
     close(fd);
 }

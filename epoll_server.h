@@ -5,7 +5,7 @@
 #include "abstract_server.h"
 #include "simple_http_handler.h"
 
-const int DFT_EPOLL_SIZE = 20;
+const int DFT_EPOLL_SIZE = 120;
 
 class EpollServer : public AbstractServer
 {
