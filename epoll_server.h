@@ -1,8 +1,9 @@
 #ifndef _EPOLL_SERVER_
 #define _EPOLL_SERVER_
 
-#include "abstract_server.h"
 #include <sys/epoll.h>
+#include "abstract_server.h"
+#include "simple_http_handler.h"
 
 const int DFT_EPOLL_SIZE = 20;
 
@@ -17,9 +18,10 @@ private:
     void HandleNewConnection(int fd);
     void HandleEpollIn(int fd);
     void HandleEpollOut(int fd);
-    void HandleEpollClosed(int fd);
+    void HandleEpollException(int fd);
     int _epollfd;
     epoll_event _events[DFT_EPOLL_SIZE];
+    HttpHandler http;
 };
 
 #endif

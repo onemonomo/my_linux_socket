@@ -58,7 +58,7 @@ int EpollServer::Accept()
                 HandleNewConnection(_listenfd);
             } else {
                 if ((_events[i].events & EPOLLHUP) || (_events[i].events & EPOLLERR) && !(_events[i].events & EPOLLIN)) // client closed
-                    HandleEpollClosed(_events[i].data.fd);
+                    HandleEpollException(_events[i].data.fd);
                 HandleEpollIn(_events[i].data.fd);
             }
         }
@@ -70,16 +70,16 @@ int EpollServer::Accept()
 void EpollServer::HandleNewConnection(int fd)
 {
     printf("get new connection.\n");
-    int connfd = accept(_listenfd,nullptr, nullptr);
+    int connfd = accept(_listenfd, nullptr, nullptr);
     if (connfd < 0) {
         perror("accept");
         return;
     }
     epoll_event single;
     single.data.fd = connfd;
-    single.events = EPOLLIN|EPOLLET;
-    printf("add new connection(%u) to epoll success.\n", connfd);
+    single.events = EPOLLIN | EPOLLET;
     epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
+    printf("add new connection(%u) to epoll success.\n", connfd);
 }
 
 void EpollServer::HandleEpollIn(int fd)
@@ -90,24 +90,21 @@ void EpollServer::HandleEpollIn(int fd)
     memset(buffer, 0, sizeof(buffer));
     int len = recv(fd, buffer, sizeof(buffer), 0);
     printf("Client[%u]:%s", fd, buffer);
-    if (strcmp(buffer, "exit\n") == 0) {
-        char end[] = "Good Bye.\n";
-        send(fd, end, sizeof(end), 0);
-        printf("Client request closing connection.\n");
-
+    if (len == 0) {
         epoll_event single;
         single.data.fd = fd;
-        single.events = EPOLLIN|EPOLLET;
+        // single.events = EPOLLIN | EPOLLET;
         epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
         close(fd);
         return;
     }
-    char ans[] = "ToDo.\n";
-    send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
+    http.HandleRequest(fd, buffer);
+    //char ans[] = "ToDo.\n";
+    //send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
     // 需不需要重新epoll_ctl mod?
 }
 
-void EpollServer::HandleEpollClosed(int fd)
+void EpollServer::HandleEpollException(int fd)
 {
     printf("Client[%u]:close connection.\n", fd);
     epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, nullptr);
