@@ -11,6 +11,7 @@
 #include <sys/shm.h>
 #include <thread>
 #include <iostream>
+#include <fcntl.h>
 
 // 感谢下列博客作者
 // https://blog.csdn.net/u012206617/article/details/89301624
@@ -31,13 +32,29 @@ EpollServer::~EpollServer()
     }
 }
 
+void SetNonBlocking(int sockfd)
+{
+    int opts;
+
+    opts = fcntl(sockfd, F_GETFL);
+    if(opts < 0) {
+        perror("fcntl(F_GETFL)\n");
+        return;
+    }
+    opts = (opts | O_NONBLOCK);
+    if(fcntl(sockfd, F_SETFL, opts) < 0) {
+        perror("fcntl(F_SETFL)\n");
+        return;
+    }
+}
+
 int EpollServer::Accept()
 {
     _epollfd = epoll_create(DFT_EPOLL_SIZE);
     epoll_event single;
-    single.events = EPOLLIN ;//| EPOLLET; ET
+    single.events = EPOLLIN | EPOLLET;
     single.data.fd = _listenfd;
-
+    SetNonBlocking(_listenfd);
     // 添加listenfd到epoll
     if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, _listenfd, &single) < 0) {
         perror("add listenfd to epoll.");
@@ -71,16 +88,14 @@ int EpollServer::Accept()
 
 void EpollServer::HandleNewConnection(int fd)
 {
-    printf("g_established(%u)\n", ++g_established);
-    int connfd = accept(_listenfd, nullptr, nullptr);
-    if (connfd < 0) {
-        perror("accept");
-        return;
+    int connfd = -1;
+    while((connfd = accept(_listenfd, nullptr, nullptr)) > 0) {
+        printf("g_established(%u)\n", ++g_established);
+        epoll_event single;
+        single.data.fd = connfd;
+        single.events = EPOLLIN | EPOLLET;
+        epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
     }
-    epoll_event single;
-    single.data.fd = connfd;
-    single.events = EPOLLIN | EPOLLET;
-    epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
 }
 
 void EpollServer::HandleEpollIn(int fd)
