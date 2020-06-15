@@ -16,6 +16,9 @@
 // https://blog.csdn.net/u012206617/article/details/89301624
 // https://blog.csdn.net/xiajun07061225/article/details/9250579
 
+
+int g_established = 0;
+
 EpollServer::EpollServer(short port, int queue) : AbstractServer(port, queue)
 {
     _epollfd = -1;
@@ -23,7 +26,6 @@ EpollServer::EpollServer(short port, int queue) : AbstractServer(port, queue)
 
 EpollServer::~EpollServer()
 {
-    printf("close epoll fd(%u)\n", _epollfd);
     if (_epollfd != -1) {
         close(_epollfd);
     }
@@ -33,7 +35,7 @@ int EpollServer::Accept()
 {
     _epollfd = epoll_create(DFT_EPOLL_SIZE);
     epoll_event single;
-    single.events = EPOLLIN | EPOLLET;
+    single.events = EPOLLIN ;//| EPOLLET; ET
     single.data.fd = _listenfd;
 
     // 添加listenfd到epoll
@@ -41,7 +43,7 @@ int EpollServer::Accept()
         perror("add listenfd to epoll.");
         return -1;
     }
-    printf("A--add _listenfd(%u) to epoll(%u) success.\n", _listenfd, _epollfd);
+
     int currentEventNum = 1; // 这个参数没用？明显代码有问题，但是运行2客户端正常
     while(true) {
         int num = epoll_wait(_epollfd, _events, currentEventNum, 500); // 修改时延
@@ -50,7 +52,7 @@ int EpollServer::Accept()
             return -2;
         }
         if (num == 0) {
-            // printf("no connection.\n"); // 会不会疯狂输出？->确实会
+            // //printf("no connection.\n"); // 会不会疯狂输出？->确实会
             continue;
         }
         for (int i = 0; i < num; ++i) {
@@ -69,7 +71,7 @@ int EpollServer::Accept()
 
 void EpollServer::HandleNewConnection(int fd)
 {
-    printf("A--get new connection.\n");
+    printf("g_established(%u)\n", ++g_established);
     int connfd = accept(_listenfd, nullptr, nullptr);
     if (connfd < 0) {
         perror("accept");
@@ -79,24 +81,21 @@ void EpollServer::HandleNewConnection(int fd)
     single.data.fd = connfd;
     single.events = EPOLLIN | EPOLLET;
     epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
-    printf("A--add new connection(%u) to epoll success.\n", connfd);
 }
 
 void EpollServer::HandleEpollIn(int fd)
 {
     if (fd < 0) return;
-    printf("I--fd(%u)\n", fd);
     char buffer[10000];
     memset(buffer, 0, sizeof(buffer));
     int len = recv(fd, buffer, sizeof(buffer), 0);
-    // printf("I--Client[%u]:%s", fd, buffer);
     /*
     if (len == 0) {
         epoll_event single;
         single.data.fd = fd;
         // single.events = EPOLLIN | EPOLLET;
         epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
-        printf("D--fd(%u)\n", fd);
+        //printf("D--fd(%u)\n", fd);
         close(fd);
         return;
     }
@@ -104,9 +103,7 @@ void EpollServer::HandleEpollIn(int fd)
     http.HandleRequest(fd, buffer);
     epoll_event single;
     single.data.fd = fd;
-    // single.events = EPOLLIN | EPOLLET;
     epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
-    printf("D--fd(%u)\n", fd);
     close(fd);
     //char ans[] = "ToDo.\n";
     //send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
@@ -115,7 +112,6 @@ void EpollServer::HandleEpollIn(int fd)
 
 void EpollServer::HandleEpollException(int fd)
 {
-    printf("D--Client[%u]:close connection.\n", fd);
     epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, nullptr);
     close(fd);
 }
