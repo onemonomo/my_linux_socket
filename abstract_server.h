@@ -2,7 +2,7 @@
 #define _ABSTRACT_SERVER_H_
 
 
-const int DFT_PORT = 7000;
+const int DFT_PORT = 60000;
 const int DFT_QUEUE_NUM = 20;
 
 class AbstractServer
@@ -15,6 +15,8 @@ public:
     void SetPort(int port);
 private:
 	virtual void Working(int fd) = 0;
+	virtual void HandleNewConnection(int fd) {};
+	virtual void HandleClientIn(int fd) {};
 protected:
 	short _port;
 	int _queueNum;

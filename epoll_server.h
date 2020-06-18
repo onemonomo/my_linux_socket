@@ -15,9 +15,8 @@ public:
     int Accept() override;
 private:
     void Working(int fd) override;
-    void HandleNewConnection(int fd);
-    void HandleEpollIn(int fd);
-    void HandleEpollOut(int fd);
+    void HandleNewConnection(int fd) override;
+    void HandleClientIn(int fd) override;
     void HandleEpollException(int fd);
     int _epollfd;
     epoll_event _events[DFT_EPOLL_SIZE];

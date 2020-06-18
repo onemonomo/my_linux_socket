@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include "my_server.h"
 #include "epoll_server.h"
-
+#include "select_server.h"
 
 int main(int argc, char *argv[])
 {
@@ -12,6 +12,8 @@ int main(int argc, char *argv[])
             server = new MyServer;
         if (atoi(argv[1]) == 2)
             server = new EpollServer;
+        if (atoi(argv[1]) == 3)
+            server = new SelectServer;
     }
     if (argc == 3) {
         port = atoi(argv[2]);

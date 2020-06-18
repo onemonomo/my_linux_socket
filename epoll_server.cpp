@@ -7,11 +7,10 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <fcntl.h>
 #include <sys/shm.h>
 #include <thread>
 #include <iostream>
-#include <fcntl.h>
+#include "socket_lib.h"
 
 // 感谢下列博客作者
 // https://blog.csdn.net/u012206617/article/details/89301624
@@ -32,22 +31,6 @@ EpollServer::~EpollServer()
     }
 }
 
-void SetNonBlocking(int sockfd)
-{
-    int opts;
-
-    opts = fcntl(sockfd, F_GETFL);
-    if(opts < 0) {
-        perror("fcntl(F_GETFL)\n");
-        return;
-    }
-    opts = (opts | O_NONBLOCK);
-    if(fcntl(sockfd, F_SETFL, opts) < 0) {
-        perror("fcntl(F_SETFL)\n");
-        return;
-    }
-}
-
 int EpollServer::Accept()
 {
     _epollfd = epoll_create(DFT_EPOLL_SIZE);
@@ -62,7 +45,7 @@ int EpollServer::Accept()
     }
 
     int currentEventNum = 1; // 这个参数没用？明显代码有问题，但是运行2客户端正常
-    while(true) {
+    while (true) {
         int num = epoll_wait(_epollfd, _events, currentEventNum, 500); // 修改时延
         if (num == -1) {
             perror("epoll wait.");
@@ -78,11 +61,12 @@ int EpollServer::Accept()
             } else {
                 if ((_events[i].events & EPOLLHUP) || (_events[i].events & EPOLLERR) && !(_events[i].events & EPOLLIN)) // client closed
                     HandleEpollException(_events[i].data.fd);
-                HandleEpollIn(_events[i].data.fd);
+                HandleClientIn(_events[i].data.fd);
             }
         }
         // 怎么退出
     }
+    return 0;
     // 析构close _epollfd;
 }
 
@@ -98,12 +82,13 @@ void EpollServer::HandleNewConnection(int fd)
     }
 }
 
-void EpollServer::HandleEpollIn(int fd)
+void EpollServer::HandleClientIn(int fd)
 {
     if (fd < 0) return;
     char buffer[10000];
     memset(buffer, 0, sizeof(buffer));
-    int len = recv(fd, buffer, sizeof(buffer), 0);
+    // already set no block, so it can be not enough for recv once.
+    int len = recv(fd, buffer, sizeof(buffer), 0); // TODO: use MSG_WAITALL and while
     /*
     if (len == 0) {
         epoll_event single;
