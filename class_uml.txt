@@ -1,33 +1,63 @@
 @startuml
-AbsServer <|-- SingleThreadServer
+AbsServer <|-- SingleServer
+AbsServer <|-- SelectServer
 AbsServer <|-- EpollServer
+HttpHandler <-- SelectServer
+HttpHandler <-- EpollServer
 
 
 abstract class AbsServer
 {
-+AbsServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
-+virtual ~AbsServer();
-+int Init() {实现};
-+virtual void SetPort(int port) {实现};
-+virtual int Accept() = 0;
--virtual void Working(int fd) = 0;
-- short _port;
-- int _queueNum;
-- int _listenfd = -1;
+    +AbsServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
+    +virtual ~AbsServer();
+    +int Init();
+    +virtual void SetPort(int port);
+    +virtual int Start() = 0; // 变更
+    -virtual void HandleNewConnection(int fd) = 0;
+    -virtual void HandleClientIn(int fd) = 0;
+    -virtual void HandleNewConnection(int fd) = 0;
+
+    -short port_;
+    -int listenQueueNum_;
+    -int listenfd_ = -1;
 }
 
-class SingleThreadServer
+class SingleServer
 {
-+SingleThreadServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
-+virtual ~SingleThreadServer();
+    +SingleServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
+    +virtual ~SingleServer();
 }
 
 class EpollServer
 {
-+EpollServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
-+virtual ~EpollServer();
--int _epollfd;
--epoll_event _events[DFT_EPOLL_SIZE];
+    +EpollServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
+    +virtual ~EpollServer();
+    -int epollfd_;
+    -epoll_event events_[DFT_EPOLL_SIZE];
+    -HttpHandler http_;
+}
+
+class SelectServer
+{
+    +SelectServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
+    +virtual ~SelectServer();
+
+    -fd_set selfSet_;
+    -fd_set selectSet_;
+    -int maxfd;
+    -int client[FD_SETSIZE];
+    -int clientNum = 0;
+    -HttpHandler http_;
+}
+
+class HttpHandler
+{
+    +HttpHandler();
+    +~HttpHandler();
+    +int HandleRequest(int fd, const char *req);
+
+    -void Handle404(int fd);
+    -void Handle200(int fd);
 }
 
 @enduml
