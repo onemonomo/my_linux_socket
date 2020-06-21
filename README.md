@@ -7,4 +7,4 @@
 
 * beside socket, here is a simple http function. It can response 200 OK in any way of http requests.
 
-![avatar](./uml.png)
+![avatar](https://github.com/onemonomo/my_linux_socket/blob/master/uml.png)
