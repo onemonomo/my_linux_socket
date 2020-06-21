@@ -11,16 +11,15 @@ public:
 	AbstractServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
 	virtual ~AbstractServer();
 	int Init();
-	virtual int Accept() = 0;
+	virtual int Start() = 0;
     void SetPort(int port);
 private:
-	virtual void Working(int fd) = 0;
-	virtual void HandleNewConnection(int fd) {};
-	virtual void HandleClientIn(int fd) {};
+	virtual void HandleNewConnection(int fd) = 0;
+	virtual void HandleClientIn(int fd) = 0;
 protected:
-	short _port;
-	int _queueNum;
-	int _listenfd = -1;
+	short port_;
+	int listenQueueNum_;
+	int listenfd_ = -1;
 };
 
 #endif

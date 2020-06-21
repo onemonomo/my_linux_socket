@@ -1,5 +1,5 @@
 #include <stdlib.h>
-#include "my_server.h"
+#include "single_server.h"
 #include "epoll_server.h"
 #include "select_server.h"
 
@@ -9,7 +9,7 @@ int main(int argc, char *argv[])
     int port = 7000;
     if (argc >= 2) {
         if (atoi(argv[1]) == 1)
-            server = new MyServer;
+            server = new SingleServer;
         if (atoi(argv[1]) == 2)
             server = new EpollServer;
         if (atoi(argv[1]) == 3)
@@ -20,6 +20,6 @@ int main(int argc, char *argv[])
     }
     server->SetPort(port);
     server->Init();
-    server->Accept();
+    server->Start();
     return 0;
 }

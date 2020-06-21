@@ -1,4 +1,4 @@
-#include "my_server.h"
+#include "single_server.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <stdio.h>
@@ -11,10 +11,22 @@
 #include <sys/shm.h>
 
 
-MyServer::MyServer(short port, int queue) : AbstractServer(port, queue) {}
-MyServer::~MyServer() {}
+SingleServer::SingleServer(short port, int queue) : AbstractServer(port, queue) {}
+SingleServer::~SingleServer() {}
 
-void MyServer::Working(int fd)
+void SingleServer::HandleNewConnection(int fd)
+{
+    sockaddr_in clientAddr;
+    socklen_t length = sizeof(clientAddr);
+    //int connectdfd = accept(listenfd_, (sockaddr*)&clientAddr, &length);
+    connectdfd_ = accept(fd, nullptr, nullptr);
+    if (connectdfd_ < 0) {
+        perror("accept");
+        exit(0);
+    }
+}
+
+void SingleServer::HandleClientIn(int fd)
 {
     if (fd < 0) return;
 
@@ -34,18 +46,11 @@ void MyServer::Working(int fd)
     }
 }
 
-int MyServer::Accept()
+int SingleServer::Start()
 {
-    sockaddr_in clientAddr;
-    socklen_t length = sizeof(clientAddr);
-    //int connectdfd = accept(_listenfd, (sockaddr*)&clientAddr, &length);
-    int connectdfd = accept(_listenfd, nullptr, nullptr);
-    if (connectdfd < 0) {
-        perror("accept");
-        return -1;
-    }
 
-    Working(connectdfd);
-    close(connectdfd);
+    HandleNewConnection(listenfd_);
+    HandleClientIn(connectdfd_);
+    close(connectdfd_);
     return 0;
 }

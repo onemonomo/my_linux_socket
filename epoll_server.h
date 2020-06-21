@@ -12,15 +12,14 @@ class EpollServer : public AbstractServer
 public:
     EpollServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
     virtual ~EpollServer();
-    int Accept() override;
+    int Start() override;
 private:
-    void Working(int fd) override;
     void HandleNewConnection(int fd) override;
     void HandleClientIn(int fd) override;
     void HandleEpollException(int fd);
-    int _epollfd;
-    epoll_event _events[DFT_EPOLL_SIZE];
-    HttpHandler http;
+    int epollfd_;
+    epoll_event events_[DFT_EPOLL_SIZE];
+    HttpHandler http_;
 };
 
 #endif

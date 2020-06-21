@@ -44,9 +44,9 @@ class SelectServer
 
     -fd_set selfSet_;
     -fd_set selectSet_;
-    -int maxfd;
-    -int client[FD_SETSIZE];
-    -int clientNum = 0;
+    -int maxfd_;
+    -int client_[FD_SETSIZE];
+    -int clientListRange_ = 0;
     -HttpHandler http_;
 }
 

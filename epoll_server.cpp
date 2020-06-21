@@ -21,32 +21,32 @@ int g_established = 0;
 
 EpollServer::EpollServer(short port, int queue) : AbstractServer(port, queue)
 {
-    _epollfd = -1;
+    epollfd_ = -1;
 }
 
 EpollServer::~EpollServer()
 {
-    if (_epollfd != -1) {
-        close(_epollfd);
+    if (epollfd_ != -1) {
+        close(epollfd_);
     }
 }
 
-int EpollServer::Accept()
+int EpollServer::Start()
 {
-    _epollfd = epoll_create(DFT_EPOLL_SIZE);
+    epollfd_ = epoll_create(DFT_EPOLL_SIZE);
     epoll_event single;
     single.events = EPOLLIN | EPOLLET;
-    single.data.fd = _listenfd;
-    SetNonBlocking(_listenfd);
+    single.data.fd = listenfd_;
+    SetNonBlocking(listenfd_);
     // 添加listenfd到epoll
-    if (epoll_ctl(_epollfd, EPOLL_CTL_ADD, _listenfd, &single) < 0) {
+    if (epoll_ctl(epollfd_, EPOLL_CTL_ADD, listenfd_, &single) < 0) {
         perror("add listenfd to epoll.");
         return -1;
     }
 
     int currentEventNum = 1; // 这个参数没用？明显代码有问题，但是运行2客户端正常
     while (true) {
-        int num = epoll_wait(_epollfd, _events, currentEventNum, 500); // 修改时延
+        int num = epoll_wait(epollfd_, events_, currentEventNum, 500); // 修改时延
         if (num == -1) {
             perror("epoll wait.");
             return -2;
@@ -56,29 +56,30 @@ int EpollServer::Accept()
             continue;
         }
         for (int i = 0; i < num; ++i) {
-            if (_events[i].data.fd == _listenfd) {
-                HandleNewConnection(_listenfd);
+            if (events_[i].data.fd == listenfd_) {
+                HandleNewConnection(listenfd_);
             } else {
-                if ((_events[i].events & EPOLLHUP) || (_events[i].events & EPOLLERR) && !(_events[i].events & EPOLLIN)) // client closed
-                    HandleEpollException(_events[i].data.fd);
-                HandleClientIn(_events[i].data.fd);
+                if ((events_[i].events & EPOLLHUP) || (events_[i].events & EPOLLERR) && !(events_[i].events & EPOLLIN)) // client closed
+                    HandleEpollException(events_[i].data.fd);
+                HandleClientIn(events_[i].data.fd);
             }
         }
         // 怎么退出
     }
+    printf("epoll accept end.\n");
     return 0;
-    // 析构close _epollfd;
+    // 析构close epollfd_;
 }
 
 void EpollServer::HandleNewConnection(int fd)
 {
     int connfd = -1;
-    while((connfd = accept(_listenfd, nullptr, nullptr)) > 0) {
+    while((connfd = accept(listenfd_, nullptr, nullptr)) > 0) {
         printf("g_established(%u)\n", ++g_established);
         epoll_event single;
         single.data.fd = connfd;
         single.events = EPOLLIN | EPOLLET;
-        epoll_ctl(_epollfd, EPOLL_CTL_ADD, connfd, &single);
+        epoll_ctl(epollfd_, EPOLL_CTL_ADD, connfd, &single);
     }
 }
 
@@ -94,16 +95,16 @@ void EpollServer::HandleClientIn(int fd)
         epoll_event single;
         single.data.fd = fd;
         // single.events = EPOLLIN | EPOLLET;
-        epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
+        epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd,&single);
         //printf("D--fd(%u)\n", fd);
         close(fd);
         return;
     }
     */
-    http.HandleRequest(fd, buffer);
+    http_.HandleRequest(fd, buffer);
     epoll_event single;
     single.data.fd = fd;
-    epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd,&single);
+    epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd,&single);
     close(fd);
     //char ans[] = "ToDo.\n";
     //send(fd, ans, sizeof(ans), MSG_NOSIGNAL); // 踩坑，send时，如果client已经关闭，会关闭当前进程
@@ -112,8 +113,6 @@ void EpollServer::HandleClientIn(int fd)
 
 void EpollServer::HandleEpollException(int fd)
 {
-    epoll_ctl(_epollfd, EPOLL_CTL_DEL, fd, nullptr);
+    epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, nullptr);
     close(fd);
 }
-
-void EpollServer::Working(int fd) {}

@@ -11,16 +11,15 @@ class SelectServer : public AbstractServer
 public:
     SelectServer(short port = DFT_PORT, int queue = DFT_QUEUE_NUM);
     virtual ~SelectServer();
-    int Accept() override;
+    int Start() override;
 private:
-    void Working(int fd) override;
     void HandleNewConnection(int fd) override;
     void HandleClientIn(int fd) override;
     fd_set selfSet_;
     fd_set selectSet_; // use by Select
-    int maxfd;
-    int client[FD_SETSIZE]; // TODO : change to list
-    int clientNum = 0;
+    int maxfd_;
+    int clientList_[FD_SETSIZE]; // TODO : change to list
+    int clientListRange_ = 0;
     HttpHandler http_;
 };
 

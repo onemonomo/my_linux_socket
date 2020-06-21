@@ -12,31 +12,31 @@
 #include <iostream>
 
 
-AbstractServer::AbstractServer(short port, int queue) : _port(port), _queueNum(queue) {}
+AbstractServer::AbstractServer(short port, int queue) : port_(port), listenQueueNum_(queue) {}
 AbstractServer::~AbstractServer()
 {
-    if (_listenfd != -1) {
-        printf("close listen fd[%u]\n", _listenfd);
-        close(_listenfd);
+    if (listenfd_ != -1) {
+        printf("close listen fd[%u]\n", listenfd_);
+        close(listenfd_);
     }
 }
 
 int AbstractServer::Init()
 {
     printf("Start to creat socket and listen.\n");
-    _listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    printf("creaat listen fd[%u]\n", _listenfd);
+    listenfd_ = socket(AF_INET, SOCK_STREAM, 0);
+    printf("creaat listen fd[%u]\n", listenfd_);
     sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(_port);
+    serverAddr.sin_port = htons(port_);
     serverAddr.sin_addr.s_addr = htonl(INADDR_ANY); //https://blog.csdn.net/jeffasd/article/details/51461568
     
-    if (bind(_listenfd, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) == -1) {
+    if (bind(listenfd_, (struct sockaddr*) &serverAddr, sizeof(serverAddr)) == -1) {
         perror("bind");
         return -1;
     }
 
-    if (listen(_listenfd, _queueNum) == -1) {
+    if (listen(listenfd_, listenQueueNum_) == -1) {
         perror("listen");
         return -1;
     }
@@ -45,5 +45,5 @@ int AbstractServer::Init()
 }
 
 void AbstractServer::SetPort(int port) {
-    _port = port;
+    port_ = port;
 }
